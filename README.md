@@ -38,8 +38,10 @@ mkdir -p tm
 There's also an example `Makefile` that wraps all these into targets that can be easily shared for multiple models. If you have [GNU make](https://www.gnu.org/software/make/) installed (available by default on Linux distros but not on OSX), simply run:
 
 ```
-make
+make MODEL=the_name_of_your_model_minus_.py
 ```
+
+You should either have plantuml.jar on the same directory as your model, or set PLANTUML_PATH.
 
 To avoid installing all the dependencies, like `pandoc` or `Java`, the script can be run inside a container:
 
@@ -146,6 +148,30 @@ db.isSql = True
 db.inScope = False
 db.sourceCode = "model/schema.sql"
 
+comments = Data(
+    name="Comments", 
+    description="Comments in HTML or Markdown",  
+    classification=Classification.PUBLIC,  
+    isPII=False,
+    isCredentials=False,  
+    # credentialsLife=Lifetime.LONG,  
+    isStored=True, 
+    isSourceEncryptedAtRest=False, 
+    isDestEncryptedAtRest=True 
+)
+
+results = Data(
+    name="results", 
+    description="Results of insert op",  
+    classification=Classification.SENSITIVE,  
+    isPII=False, 
+    isCredentials=False,  
+    # credentialsLife=Lifetime.LONG,  
+    isStored=True, 
+    isSourceEncryptedAtRest=False, 
+    isDestEncryptedAtRest=True 
+)
+
 my_lambda = Lambda("cleanDBevery6hours")
 my_lambda.hasAccessControl = True
 my_lambda.inBoundary = Web_DB
@@ -157,7 +183,7 @@ my_lambda_to_db.dstPort = 3306
 user_to_web = Dataflow(user, web, "User enters comments (*)")
 user_to_web.protocol = "HTTP"
 user_to_web.dstPort = 80
-user_to_web.data = Data('Comments in HTML or Markdown', classification=Classification.PUBLIC)
+user_to_web.data = comments
 
 web_to_user = Dataflow(web, user, "Comments saved (*)")
 web_to_user.protocol = "HTTP"
@@ -168,10 +194,7 @@ web_to_db.dstPort = 3306
 
 db_to_web = Dataflow(db, web, "Comments contents")
 db_to_web.protocol = "MySQL"
-# this is a BAD way of defining a data object, here for a demo on how it
-# will appear on the sample report. Use Data objects.
-db_to_web.data = 'Results of insert op'
-
+db_to_web.data = results
 
 tm.process()
 
@@ -277,8 +300,8 @@ user_to_web = Dataflow(user, web, "User enters comments (*)", protocol="HTTP", d
 user_to_web.overrides = [
     Finding(
         # Overflow Buffers
-        id="INP02",
-        CVSS="9.3",
+        threat_id="INP02",
+        cvss="9.3",
         response="""**To Mitigate**: run a memory sanitizer to validate the binary""",
     )
 ]
